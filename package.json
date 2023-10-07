@@ -1,0 +1,19 @@
+{
+  "name": "onthewall-yaml",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "bun-types": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "scripts": {
+    "10-16": "./moveImg.sh",
+    "resize-a2-final": "./batch-10-16.sh"
+  },
+  "dependencies": {
+    "cloudinary": "^1.41.0",
+    "jimp": "^0.22.10"
+  }
+}

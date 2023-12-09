@@ -31,6 +31,49 @@ function addWatermark1016Homepage(image: any, watermarkpath: any) {
     })
 }
 
+export function createMockupAll(options: any) {
+  Jimp.read(options.imagepath)
+    .then(async (image: any) => {
+      console.log("image opened")
+      await addWatermarkAll(
+        image,
+        options.watermarkpath,
+        options.resizeWidth,
+        options.resizeHeight,
+        options.compositeWidth,
+        options.compositeHeight
+      )
+      image.quality(80)
+      image
+        .writeAsync(options.saveimagepath)
+        .then(() => console.log("image saved"))
+        .catch((err: any) => {
+          console.error(err)
+        })
+    })
+    .catch((err: any) => {
+      console.error(err)
+    })
+}
+
+function addWatermarkAll(
+  image: any,
+  watermarkpath: any,
+  resizeWidth: number,
+  resizeHeight: number,
+  compositeWidth: number,
+  compositeHeight: number
+) {
+  return Jimp.read(watermarkpath)
+    .then((watermark: any) => {
+      watermark.resize(resizeWidth, resizeHeight)
+      image.composite(watermark, compositeWidth, compositeHeight)
+    })
+    .catch((err: any) => {
+      console.error(err)
+    })
+}
+
 export function createMockup1016(options: any) {
   Jimp.read(options.imagepath)
     .then(async (image: any) => {

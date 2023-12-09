@@ -1,6 +1,6 @@
 import Jimp from "jimp"
 import fs from "fs/promises"
-import { readdir } from "node:fs/promises"
+import { readdir, stat } from "node:fs/promises"
 import { join } from "node:path"
 
 export async function upscale_image_process_one(
@@ -31,26 +31,69 @@ export async function upscale_image_process_one(
   }
 }
 
-export function getStartNumber(filesInSell: string[]) {
-  const removeOTW = filesInSell.map((file) =>
-    parseInt(file.split("-").pop()?.split(".")[0], 10)
-  )
+export async function transformSquareIntoA3(
+  allFilesPath: string[],
+  savePath: string,
+  width: number = 1452,
+  height: number = 2048
+) {
+  // convert to 1452x2048 with cover and move the process to archive folder, move the converted to 1-process
+  for (const filePath of allFilesPath) {
+    try {
+      let jimpFile = await Jimp.read(filePath)
 
-  return removeOTW?.length === 0 ? 1 : Math.max(...removeOTW) ?? 1
+      // Calculate the center of the image
+      const centerX = jimpFile.getWidth() / 2
+      const centerY = jimpFile.getHeight() / 2
+
+      // Calculate the crop dimensions based on the desired aspect ratio
+      const cropWidth = Math.min(
+        jimpFile.getWidth(),
+        jimpFile.getHeight() * (width / height)
+      )
+      const cropHeight = Math.min(
+        jimpFile.getHeight(),
+        jimpFile.getWidth() * (height / width)
+      )
+
+      // Perform the crop
+      jimpFile.crop(
+        centerX - cropWidth / 2,
+        centerY - cropHeight / 2,
+        cropWidth,
+        cropHeight
+      )
+
+      let fileName = filePath.split("/").pop()?.split(".")[0]
+
+      await jimpFile.writeAsync(`${savePath}${fileName}.png`)
+    } catch (error) {
+      console.error(`Error processing file: ${filePath}`, error)
+      // Handle the error as needed (e.g., skip the file or log an error message)
+    }
+  }
+}
+
+export function getStartNumber(filesInSell: string[]) {
+  const numbers = filesInSell.map((file) => {
+    const parts = file.split("-")
+    const numberPart = parts[parts.length - 1]?.split(".")[0]
+    return numberPart ? parseInt(numberPart, 10) : NaN
+  })
+
+  const validNumbers = numbers.filter((number) => !isNaN(number))
+
+  return validNumbers.length === 0 ? 1 : Math.max(...validNumbers)
 }
 
 async function base64_encode(path: string) {
   const file = Bun.file(path)
-
   const arrbuf = await file.arrayBuffer()
   return Buffer.from(arrbuf).toString("base64")
 }
 
 async function base64_decode(base64str: string, file: string) {
-  // create buffer object from base64 encoded string, it is important to tell the constructor that the string is base64 encoded
   var bitmap = Buffer.from(base64str, "base64")
-  // write buffer to file
-  // fs.writeFile(file, bitmap)
   Bun.write(file, bitmap)
   console.log("******** File created from base64 encoded string ********")
 }
@@ -122,60 +165,15 @@ export async function upscale_image_square(
   }
 }
 
-export async function upscale_image_1016_35_single(allFilesPath: string[]) {
-  let arrFiles = []
-  for (const filePath of allFilesPath) {
-    let file = await base64_encode(filePath)
-
-    arrFiles.push({
-      data: file,
-      name: filePath.split("/").pop(),
-      fileName: filePath.split("/").pop()!.split(".")[0],
-    })
-  }
-
-  for (const arrFile of arrFiles) {
-    const data = {
-      resize_mode: 0, //first resize 1452x2048
-      show_extras_results: true,
-      gfpgan_visibility: 0,
-      codeformer_visibility: 0,
-      codeformer_weight: 0,
-      upscaling_resize: 3.5,
-      upscaling_crop: true,
-      upscaler_1: "4x-UltraSharp",
-      upscaler_2: "None",
-      extras_upscaler_2_visibility: 0,
-      upscale_first: false,
-      image: arrFile.data,
-    }
-    console.log(`Before Extra Batch Images ${arrFile.name}`)
-
-    let result = await fetch(
-      "http://127.0.0.1:7860/sdapi/v1/extra-single-image",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        timeout: false,
-        body: JSON.stringify(data),
-      }
-    )
-
-    let resJSON = await result.json()
-    await base64_decode(
-      resJSON.image,
-      `./2-Process/10-16/${arrFile.fileName}.png`
-    )
-
-    console.log(`Creating ./2-Process/10-16/${arrFile.fileName}.png`)
-
-    fs.unlink(`./1-Process/10-16/${arrFile.name}`)
-  }
+const fileNameWithoutExtension = (filePath: string) => {
+  const fileNameWithExtension = filePath.split("/").pop()
+  return fileNameWithExtension?.split(".")[0] || ""
 }
 
-export async function upscale_image_1610_35_single(allFilesPath: string[]) {
+export async function upscaleImages(
+  allFilesPath: string[],
+  outputDirectory: string
+) {
   let arrFiles = []
   for (const filePath of allFilesPath) {
     let file = await base64_encode(filePath)
@@ -183,7 +181,7 @@ export async function upscale_image_1610_35_single(allFilesPath: string[]) {
     arrFiles.push({
       data: file,
       name: filePath.split("/").pop(),
-      fileName: filePath.split("/").pop()!.split(".")[0],
+      fileName: fileNameWithoutExtension(filePath),
     })
   }
 
@@ -219,12 +217,12 @@ export async function upscale_image_1610_35_single(allFilesPath: string[]) {
     let resJSON = await result.json()
     await base64_decode(
       resJSON.image,
-      `./2-Process/16-10/${arrFile.fileName}.png`
+      `./2-Process/${outputDirectory}/${arrFile.fileName}.png`
     )
 
-    console.log(`Creating ./2-Process/16-10/${arrFile.fileName}.png`)
+    console.log(`Creating ./${outputDirectory}/${arrFile.fileName}.png`)
 
-    fs.unlink(`./1-Process/16-10/${arrFile.name}`)
+    fs.unlink(`./1-Process/${outputDirectory}/${arrFile.name}`)
   }
 }
 
@@ -239,5 +237,32 @@ export async function getFiles(directoryPath: string) {
     return filePaths.filter((f) => f !== "")
   } catch (err) {
     console.error(err) // depending on your application, this `catch` block (as-is) may be inappropriate; consider instead, either not-catching and/or re-throwing a new Error with the previous err attached.
+  }
+}
+
+export async function getFilesDir(directoryPath: string) {
+  try {
+    const entries = await readdir(directoryPath)
+
+    const filePaths = await Promise.all(
+      entries.map(async (entry) => {
+        const fullPath = join(directoryPath, entry)
+        const stats = await stat(fullPath)
+
+        if (stats.isDirectory()) {
+          // If it's a directory, recursively get files inside
+          return await getFiles(fullPath)
+        } else {
+          // If it's a file, return the full path
+          return fullPath
+        }
+      })
+    )
+
+    // Flatten the array of arrays into a single array of file paths
+    return filePaths.flat().filter((f) => f !== "")
+  } catch (err) {
+    console.error(err)
+    return [] // Return an empty array if there's an error
   }
 }

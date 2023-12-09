@@ -3,10 +3,12 @@ import fs from "fs/promises"
 import {
   getFiles,
   getStartNumber,
-  upscale_image_1610,
-  upscale_image_1610_35_single,
+  upscaleImages,
   upscale_image_process_one,
 } from "./utils"
+
+
+
 
 export async function upscale1610() {
   console.log(" === Start Move Img ===")
@@ -39,7 +41,7 @@ export async function upscale1610() {
 
     console.log(` === 2-Process  ===`)
 
-    await upscale_image_1610_35_single(allFilesPathProcess)
+    await upscaleImages(allFilesPathProcess, "16-10")
   } catch (e) {
     console.log(e)
   }

@@ -1,53 +1,53 @@
-import { createMockup1016, createMockup1016Homepage } from "./create-mockup"
+import { createMockup1610 } from "./create-mockup"
 import fs from "fs/promises"
 import {
   getFiles,
   getStartNumber,
-  upscale_image_1016,
-  upscale_image_1016_35_single,
+  upscale_image_1610,
+  upscale_image_1610_35_single,
   upscale_image_process_one,
 } from "./utils"
 
-export async function upscale1016() {
+export async function upscale1610() {
   console.log(" === Start Move Img ===")
   const proc = Bun.spawn(["./moveImg.sh", "hello"])
 
   await new Response(proc.stdout).text()
 
-  const filesInSell = (await getFiles("./To-Sell/10-16/")) ?? []
+  const filesInSell = (await getFiles("./To-Sell/16-10/")) ?? []
 
   const startNumber = getStartNumber(filesInSell)
 
   console.log(` === startNumber ${startNumber} ===`)
 
-  let allFilesPath = (await getFiles(`./UNPROCESSED/10-16/`)) ?? []
+  let allFilesPath = (await getFiles(`./UNPROCESSED/16-10/`)) ?? []
 
   try {
     console.log(` === 1-Process ${allFilesPath.length} files ===`)
 
-    let savePathProcessOne = `./1-Process/10-16/`
+    let savePathProcessOne = `./1-Process/16-10/`
 
     await upscale_image_process_one(
       allFilesPath,
       savePathProcessOne,
-      `./archive/10-16/${startNumber}`,
-      1452,
-      2048
+      `./archive/16-10/${startNumber}`,
+      2048,
+      1452
     )
 
     let allFilesPathProcess = (await getFiles(savePathProcessOne)) ?? []
 
     console.log(` === 2-Process  ===`)
 
-    await upscale_image_1016_35_single(allFilesPathProcess)
+    await upscale_image_1610_35_single(allFilesPathProcess)
   } catch (e) {
     console.log(e)
   }
 
   console.log("====== Batch convert   ========")
 
-  const procBatchResize = Bun.spawn(["./batch-10-16.sh"])
-  const procBatchResizeWebsite = Bun.spawn(["./batch-10-16-website.sh"])
+  const procBatchResize = Bun.spawn(["./batch-16-10.sh"])
+  const procBatchResizeWebsite = Bun.spawn(["./batch-16-10-website.sh"])
 
   const batchResize = await new Response(procBatchResize.stdout).text()
   const batchWebsite = await new Response(procBatchResizeWebsite.stdout).text()
@@ -56,13 +56,13 @@ export async function upscale1016() {
 
   console.log("====== Deleting files   ========")
 
-  let allFilesPathProcess = (await getFiles(`./2-Process/10-16/`)) ?? []
+  let allFilesPathProcess = (await getFiles(`./2-Process/16-10/`)) ?? []
 
   for (const filesToDelete of allFilesPathProcess) {
     await fs.unlink(filesToDelete)
   }
 
-  const filesInSellAfterProcessing = await getFiles("./To-Sell/10-16-website/")
+  const filesInSellAfterProcessing = await getFiles("./To-Sell/16-10-website/")
 
   const removeWhatWeDontNeed = filesInSellAfterProcessing?.map((file) => {
     return {
@@ -75,15 +75,9 @@ export async function upscale1016() {
     removeWhatWeDontNeed?.filter((file) => file.number > startNumber) ?? []
 
   for (const image of newMockupToProcess) {
-    await createMockup1016({
-      imagepath: "./process-mockup/10-16-mockup.jpg", // the original image
-      saveimagepath: `./To-Sell/10-16-mockup/WM-OTW-${image.number.toString()}.jpg`, // where to save the processed image
-      watermarkpath: "./" + image.fileName,
-    })
-
-    await createMockup1016Homepage({
-      imagepath: "./process-mockup/10-16-mockup-homepage.jpg", // the original image
-      saveimagepath: `./To-Sell/10-16-homepage/WM-OTW-${image.number.toString()}.jpg`, // where to save the processed image
+    await createMockup1610({
+      imagepath: "./process-mockup/16-10-mockup.jpg", // the original image
+      saveimagepath: `./To-Sell/16-10-mockup/WM-OTW-${image.number.toString()}.jpg`, // where to save the processed image
       watermarkpath: "./" + image.fileName,
     })
 

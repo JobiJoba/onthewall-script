@@ -15,5 +15,8 @@
   "dependencies": {
     "cloudinary": "^1.41.0",
     "jimp": "^0.22.10"
-  }
+  },
+  "include": [
+    "jsonObject.json"
+  ]
 }

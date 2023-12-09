@@ -1,7 +1,7 @@
 #!/bin/bash
 
-input_folder="/Users/joba/Downloads"
-two_days_ago=$(date -v-2d +%s)
+input_folder="/Users/joba/Downloads/ai"
+two_days_ago=$(date -v-14d +%s)
 
 
 # Loop through all JPEG and JPG files in the current directory
